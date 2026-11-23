@@ -1,6 +1,19 @@
-def fake_reply(messages):
-    last = messages[-1]["content"]
-    return f"You said '{last}'. I've seen {len(messages)} messages so far."
+from anthropic import Anthropic
+from dotenv import load_dotenv
+
+load_dotenv()          # loads ANTHROPIC_API_KEY from .env into the environment
+client = Anthropic()   # automatically reads ANTHROPIC_API_KEY
+
+
+def llm_reply(messages):
+    response = client.messages.create(
+        model="claude-haiku-5-5",
+        max_tokens=500,
+        system="You are a terse pirate. Answer in one sentence.",
+        messages=messages,
+    )
+    print(f"  [tokens: {response.usage.input_tokens} in, {response.usage.output_tokens} out]")
+    return response.content[0].text
 
 def main():
     messages = []
@@ -17,7 +30,7 @@ def main():
             continue
 
         messages.append({"role": "user", "content": user_text})
-        reply = fake_reply(messages)
+        reply = llm_reply(messages)
         messages.append({"role": "assistant", "content": reply})
         print("Bot:", reply)
 
