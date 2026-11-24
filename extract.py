@@ -69,4 +69,5 @@ def main():
     print("\nSaved to job.json")
 
 
-main()
+if __name__ == "__main__":
+    main()
