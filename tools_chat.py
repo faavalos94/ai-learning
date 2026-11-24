@@ -102,4 +102,5 @@ def main():
         print("Bot:", reply)
 
 
-main()
+if __name__ == "__main__":
+    main()
