@@ -28,22 +28,22 @@ def cosine_similarity(a, b):
     return dot / (length_a * length_b)
 
 
-def retrieve(question, chunks, k=2):
-    query_vector = vo.embed([question], model=EMBED_MODEL, input_type="query").embeddings[0]
-
+def rank_chunks(query_vector, chunks, k=2):
     for chunk in chunks:
         chunk["score"] = cosine_similarity(query_vector, chunk["embedding"])
-
     ranked = sorted(chunks, key=lambda c: c["score"], reverse=True)
+    return ranked[:k]
+
+
+def retrieve(question, chunks, k=2):
+    query_vector = vo.embed([question], model=EMBED_MODEL, input_type="query").embeddings[0]
+    ranked = rank_chunks(query_vector, chunks, k=len(chunks))
     for chunk in ranked:
         print(f"  {chunk['score']:.3f}  {chunk['title']}")
     return ranked[:k]
 
 
-def answer(question, chunks):
-    retrieved = retrieve(question, chunks)
-    print(f"  [retrieved: {[c['title'] for c in retrieved]}]")
-
+def generate_answer(question, retrieved):
     context = "\n\n".join(f"### {c['title']}\n{c['text']}" for c in retrieved)
 
     response = client.messages.create(
@@ -62,6 +62,12 @@ def answer(question, chunks):
         ],
     )
     return next((b.text for b in response.content if b.type == "text"), "")
+
+
+def answer(question, chunks):
+    retrieved = retrieve(question, chunks)
+    print(f"  [retrieved: {[c['title'] for c in retrieved]}]")
+    return generate_answer(question, retrieved)
 
 
 def main():
