@@ -13,7 +13,13 @@ def llm_reply(messages):
         messages=messages,
     )
     print(f"  [tokens: {response.usage.input_tokens} in, {response.usage.output_tokens} out]")
-    return response.content[0].text
+    print(f"  [stop reason: {response.stop_reason}]")
+
+    if response.stop_reason == "max_tokens":
+        raise RuntimeError("Reply was cut off by max_tokens. Increase max_tokens and try again.")
+    
+    text = next(block.text for block in response.content if block.type == "text")
+    return text
 
 def main():
     messages = []
