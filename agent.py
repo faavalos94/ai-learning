@@ -51,6 +51,8 @@ def run_tool(name, tool_input, chunks):
 
 
 def run_agent(messages, chunks):
+    tool_calls = []
+
     for step in range(MAX_STEPS):
         response = client.messages.create(
             model="claude-haiku-5-5",
@@ -62,12 +64,14 @@ def run_agent(messages, chunks):
         messages.append({"role": "assistant", "content": response.content})
 
         if response.stop_reason != "tool_use":
-            return next((b.text for b in response.content if b.type == "text"), "")
+            answer = next((b.text for b in response.content if b.type == "text"), "")
+            return answer, tool_calls
 
         tool_results = []
         for block in response.content:
             if block.type == "tool_use":
                 print(f"  [step {step + 1}] {block.name}({json.dumps(block.input)})")
+                tool_calls.append(block.name)
                 result = run_tool(block.name, block.input, chunks)
                 tool_results.append(
                     {
@@ -78,7 +82,7 @@ def run_agent(messages, chunks):
                 )
         messages.append({"role": "user", "content": tool_results})
 
-    return f"Stopped after {MAX_STEPS} steps without a final answer."
+    return f"Stopped after {MAX_STEPS} steps without a final answer.", tool_calls
 
 
 def main():
@@ -93,7 +97,8 @@ def main():
             break
 
         messages.append({"role": "user", "content": user_text})
-        print("Agent:", run_agent(messages, chunks))
+        answer, tool_calls = run_agent(messages, chunks)
+        print("Agent:", answer)
 
 
 if __name__ == "__main__":
